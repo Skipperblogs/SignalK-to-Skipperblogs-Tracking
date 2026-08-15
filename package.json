@@ -1,0 +1,17 @@
+{
+  "name": "signalk-skipperblog-tracker",
+  "version": "1.0.0",
+  "description": "Sends GPS-position along with speed and course (if avalable) periodically to the Skipperblogs Tracking-API",
+  "main": "index.js",
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "dependencies": {
+    "jimp": "^1.6.1"
+  }
+}
