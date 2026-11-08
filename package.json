@@ -1,17 +1,35 @@
 {
-  "name": "signalk-skipperblog-tracker",
-  "version": "1.0.0",
-  "description": "Sends GPS-position along with speed and course (if avalable) periodically to the Skipperblogs Tracking-API",
+  "name": "signalk-to-skipperblog-tracking",
+  "version": "1.0.1",
+  "displayName": "Signal K to Skipperblogs",
+  "description": "Sends periodically GPS-position along with speed and course to Skipperblogs tracking",
   "main": "index.js",
   "keywords": [
-    "signalk-node-server-plugin"
+    "signalk-node-server-plugin",
+    "signalk-category-utility"
   ],
-  "author": "",
+  "signalk": {
+    "id": "@skipperblogs/signalk-to-skipperblogs",
+    "displayName": "Skipperblogs tracking",
+    "appIcon": "./docs/logo.svg",
+    "screenshots": [
+      "./docs/screenshot_1.jpg",
+      "./docs/screenshot_2.jpg"
+    ]
+  },
+  "author": "Ralph Schnarkowski",
+  "publisher":"Skipperblogs.com",
+  "maintainer":"Skipperblogs.com",
   "license": "MIT",
+  "homepage": "https://www.skipperblogs.com",
+  "bugs": {
+    "url": "https://www.skipperblogs.com/contact"
+  },
   "engines": {
     "node": ">=10"
   },
-  "dependencies": {
-    "jimp": "^1.6.1"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skipperblogs/signalk-to-skipperblogs-tracking.git"
   }
 }

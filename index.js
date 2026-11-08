@@ -8,17 +8,16 @@ module.exports = function (app) {
   const path = require('path');
   const https = require('https');
   const http = require('http');
-  const Jimp = require('jimp');
+//  const Jimp = require('jimp'); // Using jimp package as an optional dependency
 
   // Kamerabilder werden auf diese maximale Kantenlaenge (lange Seite) begrenzt, bevor sie
   // an die Skipperblogs-API gesendet werden - das haelt die Batch-Payloads (und damit die
   // Offline-Queue-Datei) in einem vernuenftigen Rahmen.
   const MAX_IMAGE_DIMENSION_PX = 1600;
 
-  plugin.id = 'signalk-skipperblog-tracker';
-  plugin.name = 'Skipperblog Position Tracker';
-  plugin.description =
-    'Sends GPS-position along with speed and course (if avalable) periodically to the Skipperblogs Tracking-API at a fixed, configurable interval. Caches positions that cannot be sent while offline and sends them once internet connection is re-established. Uses the batch endpoint so multiple queued positions can be sent in a single API call.';
+  plugin.id = 'signalk-skipperblogs-tracking';
+  plugin.name = 'Skipperblogs Tracking';
+  plugin.description = 'Sends GPS-position along with speed and course (if avalable) periodically to Skipperblogs at a configurable interval. Positions that cannot be sent while offline are sent once internet connection is re-established.';
 
   const BATCH_API_URL = 'https://www.skipperblogs.com/tracking/signalk';
 
@@ -223,6 +222,7 @@ module.exports = function (app) {
   // (Kamera nicht erreichbar, Timeout, HTTP-Fehlerstatus) darf niemals das Senden der
   // Position selbst verhindern - der Aufrufer behandelt err entsprechend und sendet dann
   // eben ohne Bild.
+
   function fetchCameraSnapshot(snapshotUrl, username, password, timeoutMs, callback) {
     let parsed;
     try {
@@ -351,16 +351,13 @@ module.exports = function (app) {
     const opts = {
       apiKey: options.apiKey,
       checkIntervalMinutes: Math.max(
-        15,
+        30,
         typeof options.checkIntervalMinutes === 'number' ? options.checkIntervalMinutes : 30
       ),
       maxQueueSize:
         typeof options.maxQueueSize === 'number' ? options.maxQueueSize : 500,
-      retryDelaySeconds:
-        typeof options.retryDelaySeconds === 'number' ? options.retryDelaySeconds : 5,
-      // TODO: an das tatsaechliche Limit des Batch-Endpoints anpassen, sobald bekannt.
-      maxBatchSize:
-        typeof options.maxBatchSize === 'number' ? options.maxBatchSize : 100,
+      retryDelaySeconds: 5,
+      maxBatchSize: 20000,
       cameraSnapshotUrl: options.cameraSnapshotUrl || null,
       cameraUsername: options.cameraUsername || null,
       cameraPassword: options.cameraPassword || null,
@@ -397,57 +394,59 @@ module.exports = function (app) {
     properties: {
       apiKey: {
         type: 'string',
-        title: 'Skipperblogs API Key'
+        title: 'Skipperblogs API Key',
+        description: 'Enable Signal K tracking on https://www.skipperblogs.com/dashboard/nav/tracking to retrieve your key.',
       },
       checkIntervalMinutes: {
         type: 'number',
-        title: 'Check interval (minutes)',
-        description: 'Minimum: 15 minutes.',
-        minimum: 15,
-        default: 30
+        title: 'Update interval (minutes)',
+        description: 'Number of minutes the system record the position and tries to report it to Skipperblogs. (minimum 30min.)',
+        minimum: 30,
+        default: 60
       },
       maxQueueSize: {
         type: 'number',
-        title: 'Max. number of queued positions while offline',
+        title: 'Max. number of cached positions while offline',
         description:
-          'If the internet connection is interrupted for a long time, positions that could not be sent are cached and resent once the connection returns. The oldest cached positions are dropped once this limit is reached.',
-        default: 500
+          'If the internet connection is interrupted for a long time, positions that could not be sent are cached and resent once the connection returns. The oldest cached positions are dropped once this limit is reached.' +
+            '3000 records corresponds to about 250Ko of data being transferred',
+        default: 3000
       },
-      maxBatchSize: {
-        type: 'number',
-        title: 'Max. number of positions sent per batch API call',
-        description:
-          'When catching up on a large queue of cached positions, they are sent in batches of this size instead of all at once, to stay within the API\'s limits.',
-        default: 100
-      },
-      retryDelaySeconds: {
-        type: 'number',
-        title: 'Delay between resending queued position batches (seconds)',
-        description:
-          'Pause between individual batch requests while catching up on queued positions after a connection outage, to avoid flooding the Skipperblogs API.',
-        default: 5
-      },
-      cameraSnapshotUrl: {
-        type: 'string',
-        title: 'Camera snapshot URL (optional)',
-        description:
-          'HTTP(S) URL that returns a single JPEG snapshot from an onboard IP camera (e.g. http://192.168.1.50/snapshot.jpg). If set, a fresh snapshot is fetched and attached to every position that is actually sent. Leave empty to disable.'
-      },
-      cameraUsername: {
-        type: 'string',
-        title: 'Camera username (optional, for HTTP Basic Auth)'
-      },
-      cameraPassword: {
-        type: 'string',
-        title: 'Camera password (optional, for HTTP Basic Auth)'
-      },
-      cameraTimeoutSeconds: {
-        type: 'number',
-        title: 'Camera snapshot timeout (seconds)',
-        description:
-          'How long to wait for the camera to respond before sending the position without an image.',
-        default: 10
-      }
+      /*   maxBatchSize: {
+          type: 'number',
+          title: 'Max. number of positions sent per batch API call',
+          description:
+            'When catching up on a large queue of cached positions, they are sent in batches of this size instead of all at once, to stay within the API\'s limits.',
+          default: 100
+        },
+        retryDelaySeconds: {
+          type: 'number',
+          title: 'Delay between resending queued position batches (seconds)',
+          description:
+            'Pause between individual batch requests while catching up on queued positions after a connection outage, to avoid flooding the Skipperblogs API.',
+          default: 5
+        },
+       cameraSnapshotUrl: {
+          type: 'string',
+          title: 'Camera snapshot URL (optional)',
+          description:
+            'HTTP(S) URL that returns a single JPEG snapshot from an onboard IP camera (e.g. http://192.168.1.50/snapshot.jpg). If set, a fresh snapshot is fetched and attached to every position that is actually sent. Leave empty to disable.'
+        },
+        cameraUsername: {
+          type: 'string',
+          title: 'Camera username (optional, for HTTP Basic Auth)'
+        },
+        cameraPassword: {
+          type: 'string',
+          title: 'Camera password (optional, for HTTP Basic Auth)'
+        },
+        cameraTimeoutSeconds: {
+          type: 'number',
+          title: 'Camera snapshot timeout (seconds)',
+          description:
+            'How long to wait for the camera to respond before sending the position without an image.',
+          default: 10
+        }*/
     }
   };
 
